@@ -1,0 +1,15 @@
+# Core scientific stack
+numpy
+pandas
+scipy
+matplotlib
+pyyaml
+
+# Deep learning
+torch
+
+# Signal decomposition / optimization candidates
+EMD-signal
+
+# Notebook analysis
+jupyter

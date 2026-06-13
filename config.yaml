@@ -1,0 +1,245 @@
+# Unified configuration for all experiments.
+
+project:
+  seed: 42
+  device: auto
+  output_dir: outputs
+
+data:
+  csv_path: data/raw/CM_emission_kton.csv
+  raw_dir: data/raw
+  synthetic_dir: data/synthetic
+  date_column: date
+  country_column: country
+  sector_column: sector
+  target_column: co2
+  country: China
+  sector: Power
+  compare_sectors:
+    - Power
+    - Industry
+    - Residential
+  experiment_segments:
+    - name: Unsegmented(2019.1.1-2024.4.30)
+      start: 2019-01-01
+      end: 2024-04-30
+    - name: Segment1(2019.1.1-2021.3.1)
+      start: 2019-01-01
+      end: 2021-03-01
+    - name: Segment2(2021.3.2-2024.4.30)
+      start: 2021-03-02
+      end: 2024-04-30
+  train_ratio: 0.7
+  validation_ratio: 0.1
+  test_ratio: 0.2
+  window_size: 5
+  horizon: 1
+  normalize: true
+
+synthetic:
+  enabled: true
+  sequence_length: 2000
+  noise_std: 0.1
+  drift_types:
+    - abrupt
+    - gradual
+    - recurring
+
+drift_detection:
+  detector: ecddd
+  min_segment_length: 80
+  segment_margin: 60
+  ecddd:
+    window_size: 30
+    alpha: 0.01
+    threshold:
+    refractory: 30
+    ceemdan_trials: 100
+    ceemdan_noise_width: 0.2
+  baselines:
+    fedd:
+      enabled: true
+    elm:
+      enabled: true
+
+ceemdan:
+  enabled: true
+  # causal_expanding avoids test leakage by decomposing only observations
+  # available at each forecast origin. Use full_series only to reproduce older
+  # whole-series CEEMDAN manuscript tables.
+  forecasting_protocol: causal_expanding
+  trials: 1000
+  noise_width: 0.2
+  max_iter: 1000
+  max_imfs:
+  alpha: 0.05
+  frequency_split: ttest
+
+pso:
+  enabled: true
+  particles: 50
+  iterations: 30
+  inertia_max: 0.9
+  inertia_min: 0.4
+  c1: 2.0
+  c2: 2.0
+  search_space:
+    hidden_size: [32, 256]
+
+model:
+  backbone: bilstm
+  batch_size: 32
+  epochs: 100
+  patience: 10
+  learning_rate: 0.001
+  hidden_size: 128
+  num_layers: 1
+  dropout: 0.2
+  weight_decay: 0.0
+
+model_overrides:
+  lstm:
+    hidden_size: 128
+    learning_rate: 0.001
+    dropout: 0.2
+  bilstm:
+    hidden_size: 128
+    learning_rate: 0.001
+    dropout: 0.2
+  dlinear:
+    moving_average_window: 25
+    learning_rate: 0.0005
+  itransformer:
+    hidden_size: 256
+    num_layers: 2
+    n_heads: 4
+    dropout: 0.1
+    learning_rate: 0.0003
+    scheduler: cosine_annealing
+  mlp_mixer:
+    hidden_size: 256
+    num_layers: 2
+    dropout: 0.1
+    learning_rate: 0.0005
+
+baselines:
+  - dlinear
+  - itransformer
+  - mlp_mixer
+
+paper_models:
+  - lstm
+  - bilstm
+  - pso_bilstm
+  - ceemdan_bilstm
+  - ecddd_ceemdan_pso_bilstm
+
+baseline_refs:
+  lstm: "LSTM [xx]"
+  bilstm: "BiLSTM [xx]"
+  pso_bilstm: "PSO-BiLSTM [xx]"
+  ceemdan_bilstm: "CEEMDAN-BiLSTM [xx]"
+  ceemdan_pso_bilstm: "CEEMDAN-PSO-BiLSTM"
+  ecddd_ceemdan_pso_bilstm: "ECDDD-CEEMDAN-PSO-BiLSTM"
+  dlinear: "DLinear [xx]"
+  itransformer: "iTransformer [xx]"
+  mlp_mixer: "MLP-Mixer [xx]"
+
+hyperparameter_tuning:
+  lstm:
+    key_hyperparameters: "Hidden units, learning rate, dropout"
+    search_space: "[32, 64, 128, 256], [1e-4, 1e-2], [0.1, 0.5]"
+    final_tuned_value: "128, 0.001, 0.2"
+    tuning_method: "Grid Search"
+  bilstm:
+    key_hyperparameters: "Hidden units, learning rate, dropout"
+    search_space: "[32, 64, 128, 256], [1e-4, 1e-2], [0.1, 0.5]"
+    final_tuned_value: "128, 0.001, 0.2"
+    tuning_method: "Grid Search"
+  dlinear:
+    key_hyperparameters: "Moving average window, learning rate"
+    search_space: "[5, 10, 15, 20, 25], [1e-4, 1e-2]"
+    final_tuned_value: "25, 0.0005"
+    tuning_method: "Grid Search"
+  itransformer:
+    key_hyperparameters: "d_model, n_heads, learning rate"
+    search_space: "[64, 128, 256, 512], [2, 4, 8], [1e-4, 1e-2]"
+    final_tuned_value: "256, 4, 0.0003"
+    tuning_method: "Adam + Scheduler"
+  mlp_mixer:
+    key_hyperparameters: "Token dim, channel dim, learning rate"
+    search_space: "[64, 512], [64, 512], [1e-4, 1e-2]"
+    final_tuned_value: "256, 256, 0.0005"
+    tuning_method: "Grid Search"
+  pso_bilstm:
+    key_hyperparameters: "BiLSTM hidden units, PSO population size"
+    search_space: "[32, 256], [20, 100]"
+    final_tuned_value: "128, 50"
+    tuning_method: "PSO"
+  ceemdan_pso_bilstm:
+    key_hyperparameters: "BiLSTM hidden units, PSO population size"
+    search_space: "[32, 256], [20, 100]"
+    final_tuned_value: "128, 50"
+    tuning_method: "PSO"
+  ecddd_ceemdan_pso_bilstm:
+    key_hyperparameters: "BiLSTM hidden units, PSO population size"
+    search_space: "[32, 256], [20, 100]"
+    final_tuned_value: "128, 50"
+    tuning_method: "PSO"
+
+ablation:
+  variants:
+    raw_bilstm:
+      use_drift_segments: false
+      use_ceemdan: false
+      use_pso: false
+      backbone: bilstm
+    raw_pso_bilstm:
+      use_drift_segments: false
+      use_ceemdan: false
+      use_pso: true
+      backbone: bilstm
+    ceemdan_bilstm:
+      use_drift_segments: false
+      use_ceemdan: true
+      use_pso: false
+      backbone: bilstm
+    ceemdan_pso_bilstm:
+      use_drift_segments: false
+      use_ceemdan: true
+      use_pso: true
+      backbone: bilstm
+    ecddd_ceemdan_pso_bilstm:
+      use_drift_segments: true
+      use_ceemdan: true
+      use_pso: true
+      backbone: bilstm
+
+sensitivity:
+  ecddd_window_sizes: [10, 20, 30, 50]
+  num_layers: [1, 2, 3]
+
+metrics:
+  forecasting:
+    - mae
+    - rmse
+    - mape
+    - r2
+  drift_detection:
+    - accuracy
+    - precision
+    - recall
+    - f1
+    - detection_delay
+
+complexity:
+  models:
+    - lstm
+    - bilstm
+    - dlinear
+    - itransformer
+    - mlp_mixer
+    - ecddd_ceemdan_pso_bilstm
+  batch_size: 32
+  repeats: 100
+  profile_gpu_memory: true
