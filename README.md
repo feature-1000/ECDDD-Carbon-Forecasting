@@ -4,7 +4,7 @@ This repository provides a reproducible PyTorch implementation for the paper:
 
 **An entropy-driven drift detection and feature-optimized framework for robust carbon emission forecasting in the power sector**
 
-The project implements the full forecasting pipeline proposed in the manuscript, including entropy-enhanced concept drift detection, CEEMDAN decomposition, particle swarm optimization, bidirectional recurrent forecasting, ablation studies, baseline comparisons, statistical tests, and computational complexity analysis. The revised manuscript experiments use Python 3.9 and PyTorch 2.5.1.
+The project implements the full forecasting pipeline proposed in the manuscript, including entropy-enhanced concept drift detection, CEEMDAN decomposition, particle swarm optimization, bidirectional recurrent forecasting, ablation studies, baseline comparisons, statistical tests, computational complexity analysis, and the second-revision extended comparison experiment. The revised manuscript experiments use Python 3.9 and PyTorch 2.5.1.
 
 ## Overview
 
@@ -15,6 +15,7 @@ Daily carbon emission series are non-stationary, nonlinear, and affected by loca
 3. Classify intrinsic mode functions (IMFs) into high-frequency and low-frequency components using a one-sample t-test.
 4. Forecast decomposed components with BiLSTM and PSO-optimized BiLSTM models.
 5. Compare against the manuscript baselines and SOTA forecasters: LSTM, BiLSTM, DLinear, iTransformer, and MLP-Mixer.
+6. Run the second-revision extended comparison covering EMD/EEMD/VMD/CEEMDAN, GA/GWO/PSO, and LSTM/GRU/BiLSTM/CNN-LSTM combinations.
 
 The overall workflow used in the revised manuscript is shown below.
 
@@ -49,7 +50,8 @@ ECDDD-Carbon-Forecasting/
 │   ├── run_drift.py
 │   ├── run_forecast.py
 │   ├── run_ablation.py
-│   └── run_complexity.py
+│   ├── run_complexity.py
+│   └── run_extended_comparison.py
 ├── notebooks/result_analysis.ipynb
 └── outputs/
 ```
@@ -104,9 +106,12 @@ Important options:
 - `drift_detection.ecddd`: ECDDD window size, threshold, and CEEMDAN settings
 - `ceemdan.trials`: CEEMDAN ensemble iterations, manuscript default `1000`
 - `ceemdan.forecasting_protocol`: default `causal_expanding`, which avoids future leakage by decomposing only observations available at each forecast origin. Set `full_series` only when reproducing legacy whole-series CEEMDAN tables.
+- `vmd`: optional VMD settings used by the second-revision extended comparison
 - `pso`: manuscript PSO settings, including population size `50`, max iterations `30`, and the BiLSTM hidden-unit search space
+- `metaheuristics`: GA and GWO settings used only by the extended optimizer comparison
 - `model_overrides`: model-specific tuned values corresponding to the manuscript hyperparameter table
 - `baselines`: models included in the forecasting comparison
+- `extended_comparison`: Fig. 11 decomposition, optimizer, backbone, and configuration groups
 - `complexity`: training-time, inference-time, and memory profiling settings
 
 ## Experiments
@@ -141,6 +146,12 @@ Run computational complexity evaluation:
 python -m experiments.run_complexity
 ```
 
+Run the second-revision extended comparison for Fig. 11:
+
+```bash
+python -m experiments.run_extended_comparison
+```
+
 ## Implemented Models
 
 Proposed and manuscript models:
@@ -157,6 +168,12 @@ SOTA comparison baselines used in the revised manuscript:
 - DLinear
 - iTransformer
 - MLP-Mixer
+
+Additional models and methods used only in the second-revision extended comparison:
+
+- EMD, EEMD, VMD, and CEEMDAN decomposition variants
+- GA, GWO, and PSO optimizer variants
+- LSTM, GRU, BiLSTM, and CNN-LSTM recurrent backbones
 
 ## Outputs
 
@@ -179,16 +196,19 @@ Key result files:
 - `sensitivity_ecddd_window_size.csv`: ECDDD sliding-window sensitivity analysis by manuscript data setting
 - `sensitivity_num_layers.csv`: BiLSTM-layer sensitivity analysis by manuscript data setting
 - `complexity_results.csv`: `Parameters (M)`, `Training Time (s)`, `Inference Time (ms/seq)`, and `GPU Memory (GB)`
+- `extended_comparison_results.csv`: Fig. 11 extended comparison metrics, selected optimizer parameters, and protocol labels
+- `extended_comparison_protocol.json`: leakage-control, split, decomposition, and optimizer settings for the extended comparison
+- `extended_comparison_fig11.png`: generated metric-bar figure for the extended comparison
 
 ## Reproducibility Notes
 
-The implementation fixes random seeds for Python, NumPy, and PyTorch when possible. Neural models are trained with chronological splits and early stopping. PSO uses only the validation period for hyperparameter fitness, and final test metrics are computed once on the held-out test period.
+The implementation fixes random seeds for Python, NumPy, and PyTorch when possible. Neural models are trained with chronological splits and early stopping. PSO, GA, and GWO use only the validation period for hyperparameter fitness, and final test metrics are computed once on the held-out test period.
 
-For CEEMDAN-based forecasting, the default `causal_expanding` protocol performs train/validation decomposition only on the train/validation observation span. During testing, each forecast origin is decomposed with an expanding history that ends before the forecast target. This is slower than whole-series decomposition but aligns with the repository's leakage-avoidance protocol. The `full_series` protocol is retained only for reproducing older manuscript tables that decomposed the entire dataset at once.
+For decomposition-based forecasting, the default `causal_expanding` protocol performs train/validation decomposition only on the train/validation observation span. During testing, each forecast origin is decomposed with an expanding history that ends before the forecast target. This is slower than whole-series decomposition but aligns with the repository's leakage-avoidance protocol. The `full_series` protocol is retained only for reproducing older manuscript tables that decomposed the entire dataset at once.
 
 Complexity reports measure the elapsed training pipeline time, fitted-model parameter count, inference time, and GPU memory using the manuscript batch size of 32 by default. For hybrid models, the training-time measurement includes the configured decomposition, drift-detection, and PSO stages that are part of the manuscript framework.
 
-CEEMDAN uses `EMD-signal` when available. A deterministic multi-scale fallback is included only to keep lightweight smoke tests executable in minimal environments; paper-level experiments should use the CEEMDAN implementation from `EMD-signal`.
+CEEMDAN, EMD, and EEMD use `EMD-signal` when available. VMD uses `vmdpy`. A deterministic multi-scale fallback is included only to keep lightweight smoke tests executable in minimal environments; paper-level experiments should use the decomposition implementations from the listed dependencies.
 
 ## Citation
 

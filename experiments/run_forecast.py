@@ -32,7 +32,7 @@ def apply_quick_settings(config: dict) -> dict:
         {
             "dlinear": {"moving_average_window": 5, "learning_rate": 0.001},
             "itransformer": {"hidden_size": 16, "n_heads": 1, "learning_rate": 0.001},
-            "mlp_mixer": {"hidden_size": 16, "learning_rate": 0.001},
+            "mlp_mixer": {"token_dim": 16, "channel_dim": 16, "learning_rate": 0.001},
         }
     )
     cfg["baselines"] = ["dlinear", "itransformer", "mlp_mixer"]

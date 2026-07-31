@@ -10,6 +10,7 @@ torch
 
 # Signal decomposition / optimization candidates
 EMD-signal
+vmdpy
 
 # Notebook analysis
 jupyter

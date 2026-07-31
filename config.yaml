@@ -75,6 +75,14 @@ ceemdan:
   alpha: 0.05
   frequency_split: ttest
 
+vmd:
+  modes: 6
+  alpha: 2000.0
+  tau: 0.0
+  dc: 0
+  init: 1
+  tol: 1.0e-7
+
 pso:
   enabled: true
   particles: 50
@@ -85,6 +93,20 @@ pso:
   c2: 2.0
   search_space:
     hidden_size: [32, 256]
+
+metaheuristics:
+  ga:
+    population: 50
+    generations: 30
+    crossover_rate: 0.8
+    mutation_rate: 0.1
+    search_space:
+      hidden_size: [32, 256]
+  gwo:
+    wolves: 50
+    iterations: 30
+    search_space:
+      hidden_size: [32, 256]
 
 model:
   backbone: bilstm
@@ -102,8 +124,18 @@ model_overrides:
     hidden_size: 128
     learning_rate: 0.001
     dropout: 0.2
+  gru:
+    hidden_size: 128
+    learning_rate: 0.001
+    dropout: 0.2
   bilstm:
     hidden_size: 128
+    learning_rate: 0.001
+    dropout: 0.2
+  cnn_lstm:
+    hidden_size: 128
+    cnn_channels: 64
+    cnn_kernel_size: 3
     learning_rate: 0.001
     dropout: 0.2
   dlinear:
@@ -117,7 +149,8 @@ model_overrides:
     learning_rate: 0.0003
     scheduler: cosine_annealing
   mlp_mixer:
-    hidden_size: 256
+    token_dim: 256
+    channel_dim: 256
     num_layers: 2
     dropout: 0.1
     learning_rate: 0.0005
@@ -171,6 +204,16 @@ hyperparameter_tuning:
     search_space: "[64, 512], [64, 512], [1e-4, 1e-2]"
     final_tuned_value: "256, 256, 0.0005"
     tuning_method: "Grid Search"
+  gru:
+    key_hyperparameters: "Hidden units, learning rate, dropout"
+    search_space: "[32, 64, 128, 256], [1e-4, 1e-2], [0.1, 0.5]"
+    final_tuned_value: "128, 0.001, 0.2"
+    tuning_method: "Grid Search"
+  cnn_lstm:
+    key_hyperparameters: "CNN channels, hidden units, learning rate, dropout"
+    search_space: "[32, 64, 128], [32, 64, 128, 256], [1e-4, 1e-2], [0.1, 0.5]"
+    final_tuned_value: "64, 128, 0.001, 0.2"
+    tuning_method: "Grid Search"
   pso_bilstm:
     key_hyperparameters: "BiLSTM hidden units, PSO population size"
     search_space: "[32, 256], [20, 100]"
@@ -186,6 +229,38 @@ hyperparameter_tuning:
     search_space: "[32, 256], [20, 100]"
     final_tuned_value: "128, 50"
     tuning_method: "PSO"
+
+extended_comparison:
+  dataset: unsegmented_power
+  decomposition_methods:
+    - emd
+    - eemd
+    - vmd
+    - ceemdan
+  optimization_methods:
+    - ga
+    - gwo
+    - pso
+  recurrent_backbones:
+    - lstm
+    - gru
+    - bilstm
+    - cnn_lstm
+  decomposition_backbones:
+    - lstm
+    - gru
+    - bilstm
+    - cnn_lstm
+  optimization_backbones:
+    - lstm
+    - gru
+    - bilstm
+    - cnn_lstm
+  configurations:
+    - raw
+    - ceemdan
+    - pso
+    - ceemdan_pso
 
 ablation:
   variants:
